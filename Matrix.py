@@ -84,7 +84,8 @@ class Matrix(object):
 		return
 
 	def printtofile(self, filename):
-		[print(' '.join(row)) for row in self.m]
+		with open(filename, 'w') as f:
+			print("\n".join([' '.join([str(x) for x in row]) for row in self.m]), file=f)
 
 	def printpretty(self, width=7, precision=2):
 		print('\n'.join([''.join(['{0:{1}.{2}f}'.format(item, width, precision) for item in row]) for row in self.m]))
