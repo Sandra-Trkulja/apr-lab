@@ -1,4 +1,5 @@
 import sys
+from copy import deepcopy
 
 class Matrix(object):
 	
@@ -56,8 +57,19 @@ class Matrix(object):
 		result = [[self[i, j] for i in range(self.rows)] for j in range(self.cols)]
 		return Matrix(result)
 
+	def __invert__(self): #used for finding inverse of the matrix ~A
+		A = deepcopy(self)
+		A, P = A.LUPdecomposition()
+		I = Matrix([[1 if i == j else 0 for j in self.m] for i in self.m])
+		inverse = Matrix([[0 for j in range(self.cols)] for i in range(self.rows)])
+		for j in range(self.cols):
+			y = A.forwardsubstitution(I.getcolumn(j), P)
+			x = A.backwardsubstitution(y)
+			inverse.setcolumn(x, j)
+		return inverse
+
 	def __eq__(self, other):
-		eps = 1e-6
+		eps = 1e-5
 		self._checkdimensions(other, 'equality')
 		for i in range(self.rows):
 			for j in range(self.cols):
@@ -65,7 +77,7 @@ class Matrix(object):
 					return False
 		return True
 
-	def __str__(self, width=35, precision=25): #35, 10
+	def __str__(self, width=6, precision=2):
 		return '\n'.join([''.join(['{0:{1}.{2}f}'.format(item, width, precision) for item in row]) for row in self.m])
 
 	@classmethod
@@ -88,12 +100,12 @@ class Matrix(object):
 			sys.exit(-1)
 		return
 
-	def _checksubstitutiondim(self, other, P=None):
+	def _checkallignedcolumn(self, other, P=None):
 		if type(other) != Matrix:
-			print('The right side of substitution must be a matrix of class Matrix.')
+			print('The right side must be a matrix of class Matrix.')
 			sys.exit(-1)
 		if self.rows != self.cols or self.rows != other.rows or other.cols != 1:
-			print('Substitution equation dimensions must be nxn * nx1 = nx1.')
+			print('Equation dimensions must be nxn * nx1 = nx1.')
 			sys.exit(-1)
 		if type(P) == Matrix:
 			if other.rows != P.rows or P.cols != 1:
@@ -109,8 +121,16 @@ class Matrix(object):
 			return True
 		return False
 
+	def getcolumn(self, j):
+		return -Matrix([[self[i, j] for i in range(self.rows)]])
+
+	def setcolumn(self, column, j):
+		self._checkallignedcolumn(column)
+		for i in range(self.rows):
+			self[i, j] = column[i, 0]
+
 	def forwardsubstitution(self, b, P):
-		self._checksubstitutiondim(b, P)
+		self._checkallignedcolumn(b, P)
 		y = -Matrix([[0] * self.rows])
 		for i in range(self.rows):
 			y[i, 0] = b[P[i, 0], 0]
@@ -119,7 +139,7 @@ class Matrix(object):
 		return y
 
 	def backwardsubstitution(self, y):
-		self._checksubstitutiondim(y)
+		self._checkallignedcolumn(y)
 		x = -Matrix([[0] * self.rows])
 		for i in reversed(range(self.rows)):
 			x[i, 0] = y[i, 0]
@@ -129,7 +149,7 @@ class Matrix(object):
 		return x
 
 	def LUdecomposition(self):
-		eps = 1e-6
+		eps = 1e-5
 		if not self.issquarematrix():
 			print('LU substitution can only be done on square matrices.')
 			sys.exit(-1)
@@ -145,7 +165,7 @@ class Matrix(object):
 		return self, P
 
 	def LUPdecomposition(self):
-		eps = 1e-6
+		eps = 1e-5
 		if not self.issquarematrix():
 			print('LUP substitution can only be done on square matrices.')
 			sys.exit(-1)
